@@ -140,6 +140,41 @@ var _ = Describe("FakeCredhub", func() {
 			Expect(credFromGet).To(Equal(credFromSet))
 		})
 
+		It("can list credential names and versionCreatedAt dates at a specific path", func() {
+			topLevelName := "/" + helpers.RandomString()
+			nestedName := "/some-dir/" + helpers.RandomString()
+			anotherNestedName := "/some-dir/" + helpers.RandomString()
+			deeplyNestedName := "/some-dir/some-nested-dir/" + helpers.RandomString()
+
+			token := generateJWTToken(authServerAddr, jwtSigningKey)
+			for _, name := range []string{topLevelName, nestedName, anotherNestedName, deeplyNestedName} {
+				body := fmt.Sprintf(`{"name": "%s", "value": "some-value", "type": "value"}`, name)
+				statusCode, _ := put("api/v1/data", body, token)
+				Expect(statusCode).To(Equal(http.StatusOK))
+			}
+
+			By("listing a path with credentials in it")
+			statusCode, respBody := get("api/v1/data?path=/some-dir", token)
+			Expect(statusCode).To(Equal(http.StatusOK))
+
+			var credentials listCredsResponse
+			Expect(json.Unmarshal([]byte(respBody), &credentials)).To(Succeed())
+
+			var credentialNames []string
+			for _, credential := range credentials.Credentials {
+				credentialNames = append(credentialNames, credential.Name)
+				Expect(credential.VersionCreatedAt).To(BeTemporally("~", time.Now(), 5*time.Second))
+			}
+			Expect(credentialNames).To(ConsistOf(nestedName, anotherNestedName, deeplyNestedName))
+
+			By("listing a credential directly")
+			statusCode, respBody = get("api/v1/data?path="+topLevelName, token)
+			Expect(statusCode).To(Equal(http.StatusOK))
+			Expect(statusCode).To(Equal(http.StatusOK))
+			Expect(json.Unmarshal([]byte(respBody), &credentials)).To(Succeed())
+			Expect(credentials.Credentials).To(BeEmpty())
+		})
+
 		It("returns 401s when no token is provided", func() {
 			name := "/" + helpers.RandomString()
 			value := helpers.RandomString()
@@ -182,6 +217,12 @@ type credential struct {
 type setCredResponse credential
 type getCredResponse struct {
 	Data []credential `json:"data"`
+}
+type listCredsResponse struct {
+	Credentials []struct {
+		Name             string    `json:"name"`
+		VersionCreatedAt time.Time `json:"version_created_at"`
+	} `json:"credentials"`
 }
 
 func generateJWTToken(authServerAddr string, signingKey *rsa.PrivateKey) string {

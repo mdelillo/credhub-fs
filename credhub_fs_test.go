@@ -23,7 +23,7 @@ import (
 
 var _ = Describe("CredhubFs", func() {
 	var (
-		cfs               string
+		cfsPath           string
 		fakeCredhub       string
 		credhubListenAddr string
 		credhubCertPath   string
@@ -35,12 +35,13 @@ var _ = Describe("CredhubFs", func() {
 		clientID          string
 		clientSecret      string
 		jwtSigningKey     *rsa.PrivateKey
+		cfs               func(args ...string) *gexec.Session
 		setValueInCredhub func(name, value string)
 	)
 
 	BeforeSuite(func() {
 		var err error
-		cfs, err = gexec.Build(filepath.Join("github.com", "mdelillo", "credhub-fs", "cmd", "cfs"))
+		cfsPath, err = gexec.Build(filepath.Join("github.com", "mdelillo", "credhub-fs", "cmd", "cfs"))
 		Expect(err).NotTo(HaveOccurred())
 
 		fakeCredhub, err = gexec.Build(filepath.Join("github.com", "mdelillo", "credhub-fs", "test", "fake-credhub"))
@@ -85,6 +86,16 @@ var _ = Describe("CredhubFs", func() {
 		_, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(helpers.WaitForServerToBeAvailable(uaaListenAddr, 5*time.Second)).To(Succeed())
+
+		cfs = func(args ...string) *gexec.Session {
+			cmd := exec.Command(cfsPath, args...)
+			cmd.Env = append(cmd.Env, "CREDHUB_ADDR="+credhubListenAddr)
+			cmd.Env = append(cmd.Env, "CLIENT_ID="+clientID)
+			cmd.Env = append(cmd.Env, "CLIENT_SECRET="+clientSecret)
+			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			return session
+		}
 
 		getUAAToken := func() string {
 			tokenURL := fmt.Sprintf("https://%s/oauth/token", uaaListenAddr)
@@ -144,11 +155,8 @@ var _ = Describe("CredhubFs", func() {
 	})
 
 	It("prints the help text", func() {
-		cmd := exec.Command(cfs)
-		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
+		session := cfs()
 		Eventually(session).Should(gexec.Exit(0))
-
 		Expect(session).To(gbytes.Say("cfs interacts with CredHub using Unix filesystem commands"))
 	})
 
@@ -158,15 +166,35 @@ var _ = Describe("CredhubFs", func() {
 			value := helpers.RandomString()
 			setValueInCredhub(fmt.Sprintf("%s", name), value)
 
-			cmd := exec.Command(cfs, "cat", name)
-			cmd.Env = append(cmd.Env, "CREDHUB_ADDR="+credhubListenAddr)
-			cmd.Env = append(cmd.Env, "CLIENT_ID="+clientID)
-			cmd.Env = append(cmd.Env, "CLIENT_SECRET="+clientSecret)
-			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+			session := cfs("cat", name)
 			Eventually(session).Should(gexec.Exit(0))
-
 			Expect(session).To(gbytes.Say(value))
+		})
+	})
+
+	Describe("cfs ls", func() {
+		It("lists credentials and directories", func() {
+			name1 := "/1" + helpers.RandomString()
+			name2 := "/2" + helpers.RandomString()
+			name3 := "/3" + helpers.RandomString()
+			setValueInCredhub(fmt.Sprintf("%s", name1), "some-value")
+			setValueInCredhub(fmt.Sprintf("%s/some-cred", name2), "some-value")
+			setValueInCredhub(fmt.Sprintf("%s/some-nested-dir/some-cred", name3), "some-value")
+
+			By("Listing the top level directory")
+			session := cfs("ls")
+			Eventually(session).Should(gexec.Exit(0))
+			Expect(session).To(gbytes.Say(fmt.Sprintf("%s  %s  %s", name1, name2+"/", name3+"/")))
+
+			By("Listing a directory with one credential in it")
+			session = cfs("ls", name2)
+			Eventually(session).Should(gexec.Exit(0))
+			Expect(session).To(gbytes.Say(fmt.Sprintf("%s/some-cred", name2)))
+
+			By("Listing a credenial directly")
+			session = cfs("ls", name1)
+			Eventually(session).Should(gexec.Exit(0))
+			Expect(session).To(gbytes.Say(name1))
 		})
 	})
 })

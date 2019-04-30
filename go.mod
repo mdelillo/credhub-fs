@@ -8,6 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.3.0
 	github.com/google/uuid v1.1.1
 	github.com/mattn/go-isatty v0.0.7 // indirect
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.0.2 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/spf13/cobra v0.0.3
