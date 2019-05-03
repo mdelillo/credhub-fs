@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -23,8 +22,6 @@ var _ = Describe("FakeUAA", func() {
 	var (
 		fakeUAA       string
 		listenAddr    string
-		certPath      string
-		keyPath       string
 		jwtSigningKey *rsa.PrivateKey
 		clientID      string
 		clientSecret  string
@@ -42,14 +39,13 @@ var _ = Describe("FakeUAA", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		listenAddr = helpers.GetFreeAddr()
-		certPath, keyPath = helpers.GenerateSelfSignedCert("127.0.0.1")
 		clientID = helpers.RandomString()
 		clientSecret = helpers.RandomString()
 		cmd := exec.Command(
 			fakeUAA,
 			"--listen-addr", listenAddr,
-			"--cert-path", certPath,
-			"--key-path", keyPath,
+			"--cert-path", filepath.Join("..", "fixtures", "127.0.0.1-cert.pem"),
+			"--key-path", filepath.Join("..", "fixtures", "127.0.0.1-key.pem"),
 			"--jwt-signing-key", helpers.PrivateKeyToPEM(jwtSigningKey),
 			"--client", clientID+":"+clientSecret,
 		)
@@ -60,8 +56,6 @@ var _ = Describe("FakeUAA", func() {
 
 	AfterEach(func() {
 		gexec.KillAndWait()
-		os.Remove(certPath)
-		os.Remove(keyPath)
 	})
 
 	AfterSuite(func() {

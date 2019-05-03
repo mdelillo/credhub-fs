@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -26,12 +25,8 @@ var _ = Describe("CredhubFs", func() {
 		cfsPath           string
 		fakeCredhub       string
 		credhubListenAddr string
-		credhubCertPath   string
-		credhubKeyPath    string
 		fakeUAA           string
 		uaaListenAddr     string
-		uaaCertPath       string
-		uaaKeyPath        string
 		clientID          string
 		clientSecret      string
 		jwtSigningKey     *rsa.PrivateKey
@@ -57,15 +52,13 @@ var _ = Describe("CredhubFs", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		credhubListenAddr = helpers.GetFreeAddr()
-		credhubCertPath, credhubKeyPath = helpers.GenerateSelfSignedCert("127.0.0.1")
 		uaaListenAddr = helpers.GetFreeAddr()
-		uaaCertPath, uaaKeyPath = helpers.GenerateSelfSignedCert("127.0.0.1")
 
 		cmd := exec.Command(
 			fakeCredhub,
 			"--listen-addr", credhubListenAddr,
-			"--cert-path", credhubCertPath,
-			"--key-path", credhubKeyPath,
+			"--cert-path", filepath.Join("test", "fixtures", "127.0.0.1-cert.pem"),
+			"--key-path", filepath.Join("test", "fixtures", "127.0.0.1-key.pem"),
 			"--auth-server-addr", "https://"+uaaListenAddr,
 			"--jwt-verification-key", helpers.PublicKeyToPEM(&jwtSigningKey.PublicKey),
 		)
@@ -78,8 +71,8 @@ var _ = Describe("CredhubFs", func() {
 		cmd = exec.Command(
 			fakeUAA,
 			"--listen-addr", uaaListenAddr,
-			"--cert-path", uaaCertPath,
-			"--key-path", uaaKeyPath,
+			"--cert-path", filepath.Join("test", "fixtures", "127.0.0.1-cert.pem"),
+			"--key-path", filepath.Join("test", "fixtures", "127.0.0.1-key.pem"),
 			"--jwt-signing-key", helpers.PrivateKeyToPEM(jwtSigningKey),
 			"--client", clientID+":"+clientSecret,
 		)
@@ -144,10 +137,6 @@ var _ = Describe("CredhubFs", func() {
 
 	AfterEach(func() {
 		gexec.KillAndWait()
-		os.Remove(credhubCertPath)
-		os.Remove(credhubKeyPath)
-		os.Remove(uaaCertPath)
-		os.Remove(uaaKeyPath)
 	})
 
 	AfterSuite(func() {

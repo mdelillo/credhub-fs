@@ -1,15 +1,11 @@
 package helpers
 
 import (
-	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
-	"math/big"
 	"math/rand"
 	"net"
 	"net/http"
@@ -86,51 +82,6 @@ func PublicKeyToPEM(publicKey *rsa.PublicKey) string {
 	}
 	publicKeyBytes := pem.EncodeToMemory(publicKeyPEM)
 	return string(publicKeyBytes)
-}
-
-func GenerateSelfSignedCert(commonName string) (string, string) {
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := cryptorand.Int(cryptorand.Reader, serialNumberLimit)
-	if err != nil {
-		panic(err)
-	}
-
-	template := &x509.Certificate{
-		SerialNumber: serialNumber,
-		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		Subject:      pkix.Name{CommonName: commonName},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(time.Hour * 24 * 365),
-	}
-
-	key, err := rsa.GenerateKey(cryptorand.Reader, 4096)
-	if err != nil {
-		panic(err)
-	}
-
-	derBytes, err := x509.CreateCertificate(cryptorand.Reader, template, template, &key.PublicKey, key)
-	if err != nil {
-		panic(err)
-	}
-
-	certPath, err := ioutil.TempFile("", "cert")
-	if err != nil {
-		panic(err)
-	}
-	if err := pem.Encode(certPath, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
-		panic(err)
-	}
-
-	keyPath, err := ioutil.TempFile("", "key")
-	if err != nil {
-		panic(err)
-	}
-	if err := pem.Encode(keyPath, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}); err != nil {
-		panic(err)
-	}
-
-	return certPath.Name(), keyPath.Name()
 }
 
 func panicOnError(err error) {

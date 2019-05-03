@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -25,8 +24,6 @@ var _ = Describe("FakeCredhub", func() {
 	var (
 		fakeCredhub    string
 		listenAddr     string
-		certPath       string
-		keyPath        string
 		authServerAddr = "some-auth-server-addr"
 		jwtSigningKey  *rsa.PrivateKey
 		makeRequest    func(method, path, body, authToken string) (statusCode int, responseBody string)
@@ -46,12 +43,11 @@ var _ = Describe("FakeCredhub", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		listenAddr = helpers.GetFreeAddr()
-		certPath, keyPath = helpers.GenerateSelfSignedCert("127.0.0.1")
 		cmd := exec.Command(
 			fakeCredhub,
 			"--listen-addr", listenAddr,
-			"--cert-path", certPath,
-			"--key-path", keyPath,
+			"--cert-path", filepath.Join("..", "fixtures", "127.0.0.1-cert.pem"),
+			"--key-path", filepath.Join("..", "fixtures", "127.0.0.1-key.pem"),
 			"--auth-server-addr", authServerAddr,
 			"--jwt-verification-key", helpers.PublicKeyToPEM(&jwtSigningKey.PublicKey),
 		)
@@ -89,8 +85,6 @@ var _ = Describe("FakeCredhub", func() {
 
 	AfterEach(func() {
 		gexec.KillAndWait()
-		os.Remove(certPath)
-		os.Remove(keyPath)
 	})
 
 	AfterSuite(func() {

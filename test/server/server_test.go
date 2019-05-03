@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/mdelillo/credhub-fs/test/helpers"
@@ -16,18 +16,10 @@ import (
 var _ = Describe("Server", func() {
 	var (
 		listenAddr string
-		certPath   string
-		keyPath    string
 	)
 
 	BeforeEach(func() {
 		listenAddr = helpers.GetFreeAddr()
-		certPath, keyPath = helpers.GenerateSelfSignedCert("127.0.0.1")
-	})
-
-	AfterEach(func() {
-		os.Remove(certPath)
-		os.Remove(keyPath)
 	})
 
 	It("starts and shuts down a server with the given handlers", func() {
@@ -36,6 +28,8 @@ var _ = Describe("Server", func() {
 			fmt.Fprintf(w, handlerResponse)
 		})
 
+		certPath := filepath.Join("..", "fixtures", "127.0.0.1-cert.pem")
+		keyPath := filepath.Join("..", "fixtures", "127.0.0.1-key.pem")
 		s := server.NewServer(listenAddr, certPath, keyPath, handler)
 
 		serverDone := make(chan interface{})
