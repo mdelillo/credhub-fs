@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/mdelillo/credhub-fs/test/fake-credhub/credentials"
 )
 
 func (h *credhubHandler) putDataHandler(c *gin.Context) {
@@ -16,20 +16,20 @@ func (h *credhubHandler) putDataHandler(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		panic(fmt.Sprintf("Failed to parse request body: %s", err))
+		c.JSON(400, gin.H{
+			"error": ErrInvalidPathOrBody,
+		})
+		return
 	}
 
 	if requestBody.Type != "value" {
-		panic("Only 'value' types are supported")
-	}
-	if requestBody.Name == "" {
-		panic("'name' must not be empty")
-	}
-	if requestBody.Value == "" {
-		panic("'value' must not be empty")
+		c.JSON(400, gin.H{
+			"error": ErrInvalidType,
+		})
+		return
 	}
 
-	createdCred := Credential{
+	createdCred := credentials.Credential{
 		ID:               uuid.New(),
 		VersionCreatedAt: time.Now().UTC(),
 		Name:             requestBody.Name,
@@ -37,7 +37,7 @@ func (h *credhubHandler) putDataHandler(c *gin.Context) {
 		Type:             requestBody.Type,
 	}
 
-	h.credentials[requestBody.Name] = createdCred
+	h.credentialStore.Set(createdCred)
 
 	c.JSON(200, createdCred)
 }

@@ -2,33 +2,37 @@ package handler
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/mdelillo/credhub-fs/test/fake-credhub/credentials"
 )
 
 type credhubHandler struct {
-	authServerURL      string
-	jwtVerificationKey string
-	credentials        map[string]Credential
+	authServerURL   string
+	credentialStore credentialStore
+	tokenValidator  tokenValidator
 }
 
-type Credential struct {
-	ID               uuid.UUID `json:"id"`
-	Name             string    `json:"name"`
-	Type             string    `json:"type"`
-	Value            string    `json:"value"`
-	VersionCreatedAt time.Time `json:"version_created_at"`
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . credentialStore
+type credentialStore interface {
+	GetByName(name string) (cred credentials.Credential, found bool)
+	GetByPath(path string) []credentials.Credential
+	Set(credential credentials.Credential)
 }
 
-func NewCredhubHandler(authServerURL, jwtVerificationKey string) http.Handler {
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . tokenValidator
+type tokenValidator interface {
+	ValidateTokenWithClaims(token string, claims map[string]string) error
+}
+
+func NewCredhubHandler(authServerURL string, credentialStore credentialStore, tokenValidator tokenValidator) (http.Handler, error) {
 	h := &credhubHandler{
-		authServerURL:      authServerURL,
-		jwtVerificationKey: jwtVerificationKey,
-		credentials:        make(map[string]Credential),
+		authServerURL:   authServerURL,
+		credentialStore: credentialStore,
+		tokenValidator:  tokenValidator,
 	}
 
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	router.GET("/info", h.infoHandler)
 
@@ -38,5 +42,5 @@ func NewCredhubHandler(authServerURL, jwtVerificationKey string) http.Handler {
 		authenticationRequired.PUT("/api/v1/data", h.putDataHandler)
 	}
 
-	return router
+	return router, nil
 }

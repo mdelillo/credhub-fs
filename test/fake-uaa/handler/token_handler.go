@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -13,22 +14,21 @@ func (h *uaaHandler) tokenHandler(c *gin.Context) {
 	clientSecret := c.PostForm("client_secret")
 
 	if grantType != "client_credentials" {
-		panic("Only 'client_credentials' grant type is supported")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Grant type must be 'client_credentials'"})
+		return
 	}
 	if clientID == "" {
-		panic("'client_id' must not be empty")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "'client_id' must not be empty"})
+		return
 	}
 	if clientSecret == "" {
-		panic("'client_secret' must not be empty")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "'client_secret' must not be empty"})
+		return
 	}
 
 	if h.clients[clientID] != clientSecret {
-		panic("'client_id' and/or 'client_secret' is incorrect")
-	}
-
-	signingKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(h.jwtSigningKey))
-	if err != nil {
-		panic(fmt.Sprintf("Failed to parse JWT signing key: %s", err.Error()))
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "incorrect 'client_id' and/or 'client_secret'"})
+		return
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
@@ -38,10 +38,11 @@ func (h *uaaHandler) tokenHandler(c *gin.Context) {
 		"scope":      []string{"credhub.read", "credhub.write"},
 	})
 	token.Header["kid"] = "legacy-token-key"
-	tokenString, err := token.SignedString(signingKey)
+	tokenString, err := token.SignedString(h.jwtSigningKey)
 	if err != nil {
-		panic(fmt.Sprintf("failed to sign JWT token: %s", err.Error()))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to sign JWT token: %s", err.Error())})
+		return
 	}
 
-	c.JSON(200, gin.H{"access_token": tokenString})
+	c.JSON(http.StatusOK, gin.H{"access_token": tokenString})
 }

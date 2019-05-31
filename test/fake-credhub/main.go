@@ -7,7 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/mdelillo/credhub-fs/test/fake-credhub/credentials"
 	"github.com/mdelillo/credhub-fs/test/fake-credhub/handler"
+	"github.com/mdelillo/credhub-fs/test/fake-credhub/token"
 	"github.com/mdelillo/credhub-fs/test/server"
 )
 
@@ -27,12 +29,19 @@ func main() {
 	flag.StringVar(&jwtVerificationKey, "jwt-verification-key", "", "key used to verify JWT auth tokens")
 	flag.Parse()
 
-	s := server.NewServer(
-		listenAddr,
-		certPath,
-		keyPath,
-		handler.NewCredhubHandler(authServerAddr, jwtVerificationKey),
-	)
+	credentialStore := credentials.NewStore()
+
+	tokenValidator, err := token.NewValidator(jwtVerificationKey)
+	if err != nil {
+		log.Fatalf("Failed to create token validator: %s\n", err.Error())
+	}
+
+	credhubHandler, err := handler.NewCredhubHandler(authServerAddr, credentialStore, tokenValidator)
+	if err != nil {
+		log.Fatalf("Failed to create handler: %s\n", err.Error())
+	}
+
+	s := server.NewServer(listenAddr, certPath, keyPath, credhubHandler)
 
 	go func() {
 		if err := s.Start(); err != nil {

@@ -81,22 +81,8 @@ var _ = Describe("FakeUAA", func() {
 		}
 		Expect(json.Unmarshal(body, &tokenResponse)).To(Succeed())
 
-		token, err := jwt.Parse(tokenResponse.AccessToken, func(token *jwt.Token) (interface{}, error) {
-			_, signedUsingRSA := token.Method.(*jwt.SigningMethodRSA)
-			Expect(signedUsingRSA).To(BeTrue())
-
-			return &jwtSigningKey.PublicKey, nil
-		})
+		token, err := jwt.Parse(tokenResponse.AccessToken, func(token *jwt.Token) (interface{}, error) { return &jwtSigningKey.PublicKey, nil })
 		Expect(err).NotTo(HaveOccurred())
 		Expect(token.Valid).To(BeTrue())
-		Expect(token.Header["kid"]).To(Equal("legacy-token-key"))
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		Expect(ok).To(BeTrue())
-
-		Expect(claims["client_id"]).To(Equal(clientID))
-		Expect(claims["grant_type"]).To(Equal("client_credentials"))
-		Expect(claims["iss"]).To(Equal(fmt.Sprintf("https://%s/oauth/token", listenAddr)))
-		Expect(claims["scope"]).To(ConsistOf("credhub.read", "credhub.write"))
 	})
 })

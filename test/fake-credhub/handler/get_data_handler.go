@@ -1,10 +1,8 @@
 package handler
 
 import (
-	"strings"
-	"time"
-
 	"github.com/gin-gonic/gin"
+	"github.com/mdelillo/credhub-fs/test/fake-credhub/credentials"
 )
 
 func (h *credhubHandler) getDataHandler(c *gin.Context) {
@@ -12,44 +10,40 @@ func (h *credhubHandler) getDataHandler(c *gin.Context) {
 	path := c.Query("path")
 
 	if name == "" && path == "" {
-		panic("Must provide 'name' or 'path'")
-	} else if name != "" && path != "" {
-		panic("Cannot provide both 'name' and 'path'")
-	} else if name != "" {
-		h.getDataByNameHandler(name, c)
-	} else {
+		c.JSON(400, gin.H{
+			"error": ErrMissingNameParameter,
+		})
+	} else if path != "" {
 		h.getDataByPathHandler(path, c)
+	} else {
+		h.getDataByNameHandler(name, c)
 	}
 }
 
 func (h *credhubHandler) getDataByNameHandler(name string, c *gin.Context) {
-	cred, credExists := h.credentials[name]
-	if !credExists {
-		panic("Could not find cred " + name)
+	cred, found := h.credentialStore.GetByName(name)
+	if !found {
+		c.JSON(404, gin.H{
+			"error": ErrCredentialDoesNotExist,
+		})
+		return
 	}
 
 	c.JSON(200, gin.H{
-		"data": []Credential{cred},
+		"data": []credentials.Credential{cred},
 	})
 }
 
 func (h *credhubHandler) getDataByPathHandler(path string, c *gin.Context) {
-	type matchingCred struct {
-		Name             string    `json:"name"`
-		VersionCreatedAt time.Time `json:"version_created_at"`
-	}
-	var matchingCreds []matchingCred
-
-	for name, cred := range h.credentials {
-		if strings.HasPrefix(name, path) && name != path {
-			matchingCreds = append(matchingCreds, matchingCred{
-				Name:             cred.Name,
-				VersionCreatedAt: cred.VersionCreatedAt,
-			})
-		}
+	creds := h.credentialStore.GetByPath(path)
+	var credsView []credentials.CredentialNameAndDate
+	for _, cred := range creds {
+		credsView = append(credsView, credentials.CredentialNameAndDate{
+			Name: cred.Name, VersionCreatedAt: cred.VersionCreatedAt,
+		})
 	}
 
 	c.JSON(200, gin.H{
-		"credentials": matchingCreds,
+		"credentials": credsView,
 	})
 }
