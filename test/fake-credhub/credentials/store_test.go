@@ -7,7 +7,7 @@ import (
 )
 
 var _ = Describe("Store", func() {
-	It("sets and gets credentials", func() {
+	It("sets, gets, and deletes credentials", func() {
 		cred1 := credentials.Credential{Name: "/cred1"}
 		cred2 := credentials.Credential{Name: "/cred2"}
 
@@ -23,6 +23,17 @@ var _ = Describe("Store", func() {
 		actualCred2, found := store.GetByName(cred2.Name)
 		Expect(found).To(BeTrue())
 		Expect(actualCred2).To(Equal(cred2))
+
+		deleted := store.Delete(cred1.Name)
+		Expect(deleted).To(BeTrue())
+
+		_, found = store.GetByName(cred1.Name)
+		Expect(found).To(BeFalse())
+		_, found = store.GetByName(cred2.Name)
+		Expect(found).To(BeTrue())
+
+		deleted = store.Delete(cred1.Name)
+		Expect(deleted).To(BeFalse())
 	})
 
 	Context("when the credential does not exist", func() {

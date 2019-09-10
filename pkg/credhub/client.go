@@ -17,6 +17,7 @@ type client struct {
 }
 
 type Client interface {
+	DeleteCredentialByName(name string) error
 	GetCredentialByName(name string) (Credential, error)
 	FindCredentialsByPath(path string) ([]Credential, error)
 }
@@ -28,6 +29,34 @@ func NewClient(credhubAddr, clientID, clientSecret string, httpClient *http.Clie
 		clientSecret: clientSecret,
 		httpClient:   httpClient,
 	}
+}
+
+func (c *client) DeleteCredentialByName(name string) error {
+	url := fmt.Sprintf("https://%s/api/v1/data?name=%s", c.credhubAddr, name)
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %s", err.Error())
+	}
+
+	authToken, err := c.getToken()
+	if err != nil {
+		return fmt.Errorf("failed to get token: %s", err.Error())
+	}
+
+	req.Header.Add("Authorization", "Bearer "+authToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %s", err.Error())
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &ErrCredentialNotFound{name}
+	} else if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("got %s", resp.Status)
+	}
+
+	return nil
 }
 
 func (c *client) GetCredentialByName(name string) (Credential, error) {

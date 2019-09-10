@@ -19,6 +19,7 @@ var _ = Describe("Handler", func() {
 			MatchFields(IgnoreExtras, Fields{"Path": Equal("/info"), "Method": Equal("GET")}),
 			MatchFields(IgnoreExtras, Fields{"Path": Equal("/api/v1/data"), "Method": Equal("GET")}),
 			MatchFields(IgnoreExtras, Fields{"Path": Equal("/api/v1/data"), "Method": Equal("PUT")}),
+			MatchFields(IgnoreExtras, Fields{"Path": Equal("/api/v1/data"), "Method": Equal("DELETE")}),
 		))
 	})
 })

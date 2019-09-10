@@ -10,6 +10,7 @@ import (
 
 	"github.com/mdelillo/credhub-fs/pkg/cfs/cmd/cat"
 	"github.com/mdelillo/credhub-fs/pkg/cfs/cmd/ls"
+	"github.com/mdelillo/credhub-fs/pkg/cfs/cmd/rm"
 	cmdutil "github.com/mdelillo/credhub-fs/pkg/cfs/cmd/util"
 	"github.com/mdelillo/credhub-fs/pkg/credhub"
 	"github.com/spf13/cobra"
@@ -64,6 +65,7 @@ func NewCfsCommand() *cobra.Command {
 
 	cmd.AddCommand(cat.NewCmdCat(dependencies))
 	cmd.AddCommand(ls.NewCmdLs(dependencies))
+	cmd.AddCommand(rm.NewCmdRm(dependencies))
 
 	return cmd
 }

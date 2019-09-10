@@ -29,6 +29,7 @@ var _ = Describe("FakeCredhub", func() {
 		makeRequest    func(method, path, body, authToken string) (statusCode int, responseBody string)
 		get            func(path, authToken string) (statusCode int, responseBody string)
 		put            func(path, body, authToken string) (statusCode int, responseBody string)
+		delete         func(path, authToken string) (statusCode int, responseBody string)
 	)
 
 	BeforeSuite(func() {
@@ -80,6 +81,9 @@ var _ = Describe("FakeCredhub", func() {
 		}
 		put = func(path, body, authToken string) (int, string) {
 			return makeRequest(http.MethodPut, path, body, authToken)
+		}
+		delete = func(path, authToken string) (int, string) {
+			return makeRequest(http.MethodDelete, path, "", authToken)
 		}
 	})
 
@@ -164,6 +168,42 @@ var _ = Describe("FakeCredhub", func() {
 			By("listing a credential directly")
 			statusCode, respBody = get("api/v1/data?path="+topLevelName, token)
 			Expect(statusCode).To(Equal(http.StatusOK))
+			Expect(statusCode).To(Equal(http.StatusOK))
+			Expect(json.Unmarshal([]byte(respBody), &credentials)).To(Succeed())
+			Expect(credentials.Credentials).To(BeEmpty())
+		})
+
+		It("can delete credentials", func() {
+			name1 := "/" + helpers.RandomString()
+			name2 := "/" + helpers.RandomString()
+
+			token := generateJWTToken(authServerAddr, jwtSigningKey)
+			for _, name := range []string{name1, name2} {
+				body := fmt.Sprintf(`{"name": "%s", "value": "some-value", "type": "value"}`, name)
+				statusCode, _ := put("api/v1/data", body, token)
+				Expect(statusCode).To(Equal(http.StatusOK))
+			}
+
+			var credentials listCredsResponse
+			statusCode, respBody := get("api/v1/data?path=/", token)
+			Expect(statusCode).To(Equal(http.StatusOK))
+			Expect(json.Unmarshal([]byte(respBody), &credentials)).To(Succeed())
+			Expect(credentials.Credentials).To(HaveLen(2))
+
+			statusCode, respBody = delete("api/v1/data?name="+name1, token)
+			Expect(statusCode).To(Equal(http.StatusNoContent))
+			Expect(respBody).To(BeEmpty())
+
+			statusCode, respBody = get("api/v1/data?path=/", token)
+			Expect(statusCode).To(Equal(http.StatusOK))
+			Expect(json.Unmarshal([]byte(respBody), &credentials)).To(Succeed())
+			Expect(credentials.Credentials).To(HaveLen(1))
+
+			statusCode, respBody = delete("api/v1/data?name="+name2, token)
+			Expect(statusCode).To(Equal(http.StatusNoContent))
+			Expect(respBody).To(BeEmpty())
+
+			statusCode, respBody = get("api/v1/data?path=/", token)
 			Expect(statusCode).To(Equal(http.StatusOK))
 			Expect(json.Unmarshal([]byte(respBody), &credentials)).To(Succeed())
 			Expect(credentials.Credentials).To(BeEmpty())

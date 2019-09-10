@@ -8,6 +8,17 @@ import (
 )
 
 type FakeCredentialStore struct {
+	DeleteStub        func(string) bool
+	deleteMutex       sync.RWMutex
+	deleteArgsForCall []struct {
+		arg1 string
+	}
+	deleteReturns struct {
+		result1 bool
+	}
+	deleteReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	GetByNameStub        func(string) (credentials.Credential, bool)
 	getByNameMutex       sync.RWMutex
 	getByNameArgsForCall []struct {
@@ -39,6 +50,66 @@ type FakeCredentialStore struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeCredentialStore) Delete(arg1 string) bool {
+	fake.deleteMutex.Lock()
+	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
+	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Delete", []interface{}{arg1})
+	fake.deleteMutex.Unlock()
+	if fake.DeleteStub != nil {
+		return fake.DeleteStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCredentialStore) DeleteCallCount() int {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return len(fake.deleteArgsForCall)
+}
+
+func (fake *FakeCredentialStore) DeleteCalls(stub func(string) bool) {
+	fake.deleteMutex.Lock()
+	defer fake.deleteMutex.Unlock()
+	fake.DeleteStub = stub
+}
+
+func (fake *FakeCredentialStore) DeleteArgsForCall(i int) string {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	argsForCall := fake.deleteArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCredentialStore) DeleteReturns(result1 bool) {
+	fake.deleteMutex.Lock()
+	defer fake.deleteMutex.Unlock()
+	fake.DeleteStub = nil
+	fake.deleteReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeCredentialStore) DeleteReturnsOnCall(i int, result1 bool) {
+	fake.deleteMutex.Lock()
+	defer fake.deleteMutex.Unlock()
+	fake.DeleteStub = nil
+	if fake.deleteReturnsOnCall == nil {
+		fake.deleteReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.deleteReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
 }
 
 func (fake *FakeCredentialStore) GetByName(arg1 string) (credentials.Credential, bool) {
@@ -198,6 +269,8 @@ func (fake *FakeCredentialStore) SetArgsForCall(i int) credentials.Credential {
 func (fake *FakeCredentialStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
 	fake.getByNameMutex.RLock()
 	defer fake.getByNameMutex.RUnlock()
 	fake.getByPathMutex.RLock()

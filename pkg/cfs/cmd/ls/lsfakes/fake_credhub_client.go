@@ -8,6 +8,17 @@ import (
 )
 
 type FakeCredhubClient struct {
+	DeleteCredentialByNameStub        func(string) error
+	deleteCredentialByNameMutex       sync.RWMutex
+	deleteCredentialByNameArgsForCall []struct {
+		arg1 string
+	}
+	deleteCredentialByNameReturns struct {
+		result1 error
+	}
+	deleteCredentialByNameReturnsOnCall map[int]struct {
+		result1 error
+	}
 	FindCredentialsByPathStub        func(string) ([]credhub.Credential, error)
 	findCredentialsByPathMutex       sync.RWMutex
 	findCredentialsByPathArgsForCall []struct {
@@ -36,6 +47,66 @@ type FakeCredhubClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeCredhubClient) DeleteCredentialByName(arg1 string) error {
+	fake.deleteCredentialByNameMutex.Lock()
+	ret, specificReturn := fake.deleteCredentialByNameReturnsOnCall[len(fake.deleteCredentialByNameArgsForCall)]
+	fake.deleteCredentialByNameArgsForCall = append(fake.deleteCredentialByNameArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("DeleteCredentialByName", []interface{}{arg1})
+	fake.deleteCredentialByNameMutex.Unlock()
+	if fake.DeleteCredentialByNameStub != nil {
+		return fake.DeleteCredentialByNameStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteCredentialByNameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCredhubClient) DeleteCredentialByNameCallCount() int {
+	fake.deleteCredentialByNameMutex.RLock()
+	defer fake.deleteCredentialByNameMutex.RUnlock()
+	return len(fake.deleteCredentialByNameArgsForCall)
+}
+
+func (fake *FakeCredhubClient) DeleteCredentialByNameCalls(stub func(string) error) {
+	fake.deleteCredentialByNameMutex.Lock()
+	defer fake.deleteCredentialByNameMutex.Unlock()
+	fake.DeleteCredentialByNameStub = stub
+}
+
+func (fake *FakeCredhubClient) DeleteCredentialByNameArgsForCall(i int) string {
+	fake.deleteCredentialByNameMutex.RLock()
+	defer fake.deleteCredentialByNameMutex.RUnlock()
+	argsForCall := fake.deleteCredentialByNameArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCredhubClient) DeleteCredentialByNameReturns(result1 error) {
+	fake.deleteCredentialByNameMutex.Lock()
+	defer fake.deleteCredentialByNameMutex.Unlock()
+	fake.DeleteCredentialByNameStub = nil
+	fake.deleteCredentialByNameReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCredhubClient) DeleteCredentialByNameReturnsOnCall(i int, result1 error) {
+	fake.deleteCredentialByNameMutex.Lock()
+	defer fake.deleteCredentialByNameMutex.Unlock()
+	fake.DeleteCredentialByNameStub = nil
+	if fake.deleteCredentialByNameReturnsOnCall == nil {
+		fake.deleteCredentialByNameReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteCredentialByNameReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeCredhubClient) FindCredentialsByPath(arg1 string) ([]credhub.Credential, error) {
@@ -167,6 +238,8 @@ func (fake *FakeCredhubClient) GetCredentialByNameReturnsOnCall(i int, result1 c
 func (fake *FakeCredhubClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.deleteCredentialByNameMutex.RLock()
+	defer fake.deleteCredentialByNameMutex.RUnlock()
 	fake.findCredentialsByPathMutex.RLock()
 	defer fake.findCredentialsByPathMutex.RUnlock()
 	fake.getCredentialByNameMutex.RLock()

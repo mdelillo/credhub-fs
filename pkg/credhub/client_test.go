@@ -66,6 +66,167 @@ var _ = Describe("Client", func() {
 		uaaServer.Close()
 	})
 
+	Describe("DeleteCredentialByName", func() {
+		It("deletes the named credential", func() {
+			credentialName := "some-name"
+
+			token := configureTokenHandlers()
+
+			credhubServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("DELETE", "/api/v1/data", "name="+credentialName),
+					ghttp.VerifyHeaderKV("Authorization", "Bearer "+token),
+					ghttp.RespondWith(http.StatusNoContent, nil),
+				),
+			)
+
+			credhubURL := strings.TrimPrefix(credhubServer.URL(), "https://")
+			client := credhub.NewClient(credhubURL, clientID, clientSecret, skipTLSVerifyHttpClient)
+
+			Expect(client.DeleteCredentialByName(credentialName)).To(Succeed())
+		})
+
+		Context("when getting the UAA URL fails", func() {
+			It("returns an error", func() {
+				client := credhub.NewClient("some-bad-url", clientID, clientSecret, skipTLSVerifyHttpClient)
+				err := client.DeleteCredentialByName("some-name")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when the credhub /info response is not 200", func() {
+			It("returns an error", func() {
+				credhubServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/info"),
+						ghttp.RespondWith(http.StatusInternalServerError, `some-error`),
+					),
+				)
+
+				credhubURL := strings.TrimPrefix(credhubServer.URL(), "https://")
+				client := credhub.NewClient(credhubURL, clientID, clientSecret, skipTLSVerifyHttpClient)
+				err := client.DeleteCredentialByName("some-name")
+				Expect(err).To(MatchError(ContainSubstring(http.StatusText(http.StatusInternalServerError))))
+			})
+		})
+
+		Context("when the credhub /info response is not valid JSON", func() {
+			It("returns an error", func() {
+				credhubServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/info"),
+						ghttp.RespondWith(http.StatusOK, `some-non-json-response`),
+					),
+				)
+
+				credhubURL := strings.TrimPrefix(credhubServer.URL(), "https://")
+				client := credhub.NewClient(credhubURL, clientID, clientSecret, skipTLSVerifyHttpClient)
+				err := client.DeleteCredentialByName("some-name")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when the UAA token request fails", func() {
+			It("returns an error", func() {
+				credhubServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/info"),
+						ghttp.RespondWith(http.StatusOK, `{"auth-server": {"url": "some-bad-url"}}`),
+					),
+				)
+
+				credhubURL := strings.TrimPrefix(credhubServer.URL(), "https://")
+				client := credhub.NewClient(credhubURL, clientID, clientSecret, skipTLSVerifyHttpClient)
+				err := client.DeleteCredentialByName("some-name")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when the UAA token response is not 200", func() {
+			It("returns an error", func() {
+				credhubServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/info"),
+						ghttp.RespondWith(http.StatusOK, fmt.Sprintf(`{"auth-server": {"url": "%s"}}`, uaaServer.URL())),
+					),
+				)
+				uaaServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/oauth/token"),
+						ghttp.RespondWith(http.StatusInternalServerError, "some-error"),
+					),
+				)
+
+				credhubURL := strings.TrimPrefix(credhubServer.URL(), "https://")
+				client := credhub.NewClient(credhubURL, clientID, clientSecret, skipTLSVerifyHttpClient)
+				err := client.DeleteCredentialByName("some-name")
+				Expect(err).To(MatchError(ContainSubstring(http.StatusText(http.StatusInternalServerError))))
+			})
+		})
+
+		Context("when the UAA token response is not valid JSON", func() {
+			It("returns an error", func() {
+				credhubServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/info"),
+						ghttp.RespondWith(http.StatusOK, fmt.Sprintf(`{"auth-server": {"url": "%s"}}`, uaaServer.URL())),
+					),
+				)
+				uaaServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/oauth/token"),
+						ghttp.RespondWith(http.StatusOK, "some-non-json-response"),
+					),
+				)
+
+				credhubURL := strings.TrimPrefix(credhubServer.URL(), "https://")
+				client := credhub.NewClient(credhubURL, clientID, clientSecret, skipTLSVerifyHttpClient)
+				err := client.DeleteCredentialByName("some-name")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when the delete response is 404", func() {
+			It("returns an ErrCredentialNotFound", func() {
+				credentialName := "some-name"
+
+				configureTokenHandlers()
+
+				credhubServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", "/api/v1/data", "name="+credentialName),
+						ghttp.RespondWith(http.StatusNotFound, "some-error"),
+					),
+				)
+
+				credhubURL := strings.TrimPrefix(credhubServer.URL(), "https://")
+				client := credhub.NewClient(credhubURL, clientID, clientSecret, skipTLSVerifyHttpClient)
+				err := client.DeleteCredentialByName(credentialName)
+				Expect(err).To(BeAssignableToTypeOf(&credhub.ErrCredentialNotFound{}))
+			})
+		})
+
+		Context("when the delete response is not 204 or 404", func() {
+			It("returns an error", func() {
+				credentialName := "some-name"
+
+				configureTokenHandlers()
+
+				credhubServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", "/api/v1/data", "name="+credentialName),
+						ghttp.RespondWith(http.StatusInternalServerError, "some-error"),
+					),
+				)
+
+				credhubURL := strings.TrimPrefix(credhubServer.URL(), "https://")
+				client := credhub.NewClient(credhubURL, clientID, clientSecret, skipTLSVerifyHttpClient)
+				err := client.DeleteCredentialByName(credentialName)
+				Expect(err).To(MatchError(ContainSubstring(http.StatusText(http.StatusInternalServerError))))
+			})
+		})
+	})
+
 	Describe("GetCredentialByName", func() {
 		It("returns the named credential", func() {
 			credentialID := uuid.New()
