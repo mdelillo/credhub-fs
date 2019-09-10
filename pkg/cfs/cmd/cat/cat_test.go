@@ -37,7 +37,19 @@ var _ = Describe("Cat", func() {
 		Expect(cmd.Execute()).To(Succeed())
 
 		Expect(output.String()).To(Equal(value + "\n"))
+		Expect(fakeCredhubClient.GetCredentialByNameCallCount()).To(Equal(1))
 		Expect(fakeCredhubClient.GetCredentialByNameArgsForCall(0)).To(Equal(path))
+	})
+
+	Context("when no arguments are provided", func() {
+		It("returns an error and shows the usage", func() {
+			cmd := cat.NewCmdCat(dependencies)
+			cmd.SetArgs([]string{})
+			cmd.SetOutput(ioutil.Discard)
+
+			Expect(cmd.Execute()).To(MatchError(ContainSubstring("must provide a credential path")))
+			Expect(cmd.SilenceUsage).To(BeFalse())
+		})
 	})
 
 	Context("when no credential is found", func() {
@@ -51,17 +63,6 @@ var _ = Describe("Cat", func() {
 
 			Expect(cmd.Execute()).To(MatchError("'/some-path': no such credential or path"))
 			Expect(cmd.SilenceUsage).To(BeTrue())
-		})
-	})
-
-	Context("when no arguments are provided", func() {
-		It("returns an error and shows the usage", func() {
-			cmd := cat.NewCmdCat(dependencies)
-			cmd.SetArgs([]string{})
-			cmd.SetOutput(ioutil.Discard)
-
-			Expect(cmd.Execute()).To(MatchError(ContainSubstring("must provide a credential path")))
-			Expect(cmd.SilenceUsage).To(BeFalse())
 		})
 	})
 

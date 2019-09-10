@@ -18,6 +18,7 @@ type credentialStore interface {
 	GetByName(name string) (cred credentials.Credential, found bool)
 	GetByPath(path string) []credentials.Credential
 	Set(credential credentials.Credential)
+	Delete(name string) bool
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . tokenValidator
@@ -40,6 +41,7 @@ func NewCredhubHandler(authServerURL string, credentialStore credentialStore, to
 	{
 		authenticationRequired.GET("/api/v1/data", h.getDataHandler)
 		authenticationRequired.PUT("/api/v1/data", h.putDataHandler)
+		authenticationRequired.DELETE("/api/v1/data", h.deleteDataHandler)
 	}
 
 	return router, nil

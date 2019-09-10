@@ -42,6 +42,7 @@ var _ = Describe("Ls", func() {
 		Expect(cmd.Execute()).To(Succeed())
 
 		Expect(output.String()).To(Equal("/some-cred  /some-dir/  /some-other-dir/\n"))
+		Expect(fakeCredhubClient.FindCredentialsByPathCallCount()).To(Equal(1))
 		Expect(fakeCredhubClient.FindCredentialsByPathArgsForCall(0)).To(Equal("/"))
 	})
 
@@ -63,6 +64,7 @@ var _ = Describe("Ls", func() {
 			Expect(cmd.Execute()).To(Succeed())
 
 			Expect(output.String()).To(Equal("/some-dir/cred1  /some-dir/cred2  /some-dir/some-nested-dir/\n"))
+			Expect(fakeCredhubClient.FindCredentialsByPathCallCount()).To(Equal(1))
 			Expect(fakeCredhubClient.FindCredentialsByPathArgsForCall(0)).To(Equal(path))
 		})
 	})
@@ -85,6 +87,7 @@ var _ = Describe("Ls", func() {
 			Expect(cmd.Execute()).To(Succeed())
 
 			Expect(output.String()).To(Equal("/some-dir/cred1  /some-dir/cred2  /some-dir/some-nested-dir/\n"))
+			Expect(fakeCredhubClient.FindCredentialsByPathCallCount()).To(Equal(1))
 			Expect(fakeCredhubClient.FindCredentialsByPathArgsForCall(0)).To(Equal(path))
 		})
 	})
