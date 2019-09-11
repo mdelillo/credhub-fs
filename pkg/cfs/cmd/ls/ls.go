@@ -86,11 +86,13 @@ func (c *cmdLsRunner) formatCredentialPathsAndDates(credentials []credhub.Creden
 	var output []string
 	for _, credential := range credentials {
 		credentialOutput := credential.Name
-		if strings.Count(credentialOutput, "/") > 1 {
-			name := strings.TrimPrefix(credentialOutput, strings.TrimSuffix(path, "/"))
-			credentialOutput = filepath.Join(path, strings.Split(name, "/")[1])
-			if strings.Count(name, "/") > 1 {
-				credentialOutput = credentialOutput + "/"
+		if credentialOutput != path {
+			if strings.Count(credentialOutput, "/") > 1 {
+				name := strings.TrimPrefix(credentialOutput, strings.TrimSuffix(path, "/"))
+				credentialOutput = filepath.Join(path, strings.Split(name, "/")[1])
+				if strings.Count(name, "/") > 1 {
+					credentialOutput = credentialOutput + "/"
+				}
 			}
 		}
 

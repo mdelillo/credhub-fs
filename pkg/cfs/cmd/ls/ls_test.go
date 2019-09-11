@@ -112,6 +112,29 @@ var _ = Describe("Ls", func() {
 		})
 	})
 
+	Context("when the path matches a nested credential exactly", func() {
+		It("should list the credential", func() {
+			path := "/some-dir/some-cred"
+			credential := credhub.Credential{Name: path}
+			fakeCredhubClient.FindCredentialsByPathReturns([]credhub.Credential{}, nil)
+			fakeCredhubClient.GetCredentialByNameReturns(credential, nil)
+
+			var output bytes.Buffer
+			cmd := ls.NewCmdLs(dependencies)
+			cmd.SetOutput(&output)
+			cmd.SetArgs([]string{path})
+
+			Expect(cmd.Execute()).To(Succeed())
+
+			Expect(output.String()).To(Equal("/some-dir/some-cred\n"))
+
+			Expect(fakeCredhubClient.FindCredentialsByPathCallCount()).To(Equal(1))
+			Expect(fakeCredhubClient.FindCredentialsByPathArgsForCall(0)).To(Equal(path))
+			Expect(fakeCredhubClient.GetCredentialByNameCallCount()).To(Equal(1))
+			Expect(fakeCredhubClient.GetCredentialByNameArgsForCall(0)).To(Equal(path))
+		})
+	})
+
 	Context("when no credentials are found", func() {
 		Context("when the path is '/'", func() {
 			It("does not print anything", func() {
