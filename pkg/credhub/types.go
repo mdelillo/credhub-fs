@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// TODO: Can `Value` be interface{} and handle arbitrary JSON?
 type Credential struct {
 	ID               uuid.UUID `json:"id"`
 	Name             string    `json:"name"`

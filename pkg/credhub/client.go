@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type client struct {
@@ -21,6 +23,7 @@ type Client interface {
 	DeleteCredentialByName(name string) error
 	GetCredentialByName(name string) (Credential, error)
 	FindCredentialsByPath(path string) ([]Credential, error)
+	Set(name, credType, value string) error
 }
 
 func NewClient(credhubAddr, clientID, clientSecret string, httpClient *http.Client) Client {
@@ -144,6 +147,34 @@ func (c *client) FindCredentialsByPath(path string) ([]Credential, error) {
 	}
 
 	return credentials.Credentials, nil
+}
+
+func (c *client) Set(name, credType, value string) error {
+	url := fmt.Sprintf("https://%s/api/v1/data", c.credhubAddr)
+	body := fmt.Sprintf(`{"name": "%s", "type": "%s", "value": "%s"}`, name, credType, value)
+	req, err := http.NewRequest(http.MethodPut, url, strings.NewReader(body))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	authToken, err := c.getToken()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+authToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		panic("Bad status code: " + resp.Status)
+	}
+
+	return nil
 }
 
 func (c *client) getToken() (string, error) {

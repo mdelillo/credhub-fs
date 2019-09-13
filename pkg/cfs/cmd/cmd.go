@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mdelillo/credhub-fs/pkg/cfs/cmd/cat"
+	"github.com/mdelillo/credhub-fs/pkg/cfs/cmd/edit"
 	"github.com/mdelillo/credhub-fs/pkg/cfs/cmd/ls"
 	"github.com/mdelillo/credhub-fs/pkg/cfs/cmd/rm"
 	cmdutil "github.com/mdelillo/credhub-fs/pkg/cfs/cmd/util"
@@ -64,6 +65,7 @@ func NewCfsCommand() *cobra.Command {
 	viper.BindPFlags(cmd.PersistentFlags())
 
 	cmd.AddCommand(cat.NewCmdCat(dependencies))
+	cmd.AddCommand(edit.NewCmdEdit(dependencies))
 	cmd.AddCommand(ls.NewCmdLs(dependencies))
 	cmd.AddCommand(rm.NewCmdRm(dependencies))
 
