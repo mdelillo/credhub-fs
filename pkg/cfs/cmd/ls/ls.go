@@ -52,6 +52,10 @@ func (c *cmdLsRunner) Run(cmd *cobra.Command, args []string) error {
 		path = args[0]
 	}
 
+	if path[0] != '/' {
+		path = "/" + path
+	}
+
 	credentials, err := c.credhubClient.FindCredentialsByPath(path)
 	if err != nil {
 		return fmt.Errorf("failed to list credentials: %s", err.Error())

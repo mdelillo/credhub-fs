@@ -92,6 +92,29 @@ var _ = Describe("Ls", func() {
 		})
 	})
 
+	Context("when a path is specified without a leading slash", func() {
+		It("lists one level of credentials and directories at that path, sorted and uniqued", func() {
+			path := "some-dir/"
+			credentials := []credhub.Credential{
+				{Name: "/some-dir/some-nested-dir/cred"},
+				{Name: "/some-dir/cred1"},
+				{Name: "/some-dir/cred2"},
+			}
+			fakeCredhubClient.FindCredentialsByPathReturns(credentials, nil)
+
+			var output bytes.Buffer
+			cmd := ls.NewCmdLs(dependencies)
+			cmd.SetOutput(&output)
+			cmd.SetArgs([]string{path})
+
+			Expect(cmd.Execute()).To(Succeed())
+
+			Expect(output.String()).To(Equal("/some-dir/cred1  /some-dir/cred2  /some-dir/some-nested-dir/\n"))
+			Expect(fakeCredhubClient.FindCredentialsByPathCallCount()).To(Equal(1))
+			Expect(fakeCredhubClient.FindCredentialsByPathArgsForCall(0)).To(Equal("/" + path))
+		})
+	})
+
 	Context("when the path matches a credential exactly", func() {
 		It("should list the credential", func() {
 			path := "/some-cred"
