@@ -2,6 +2,7 @@ package credhub
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -98,8 +99,8 @@ func (c *client) GetCredentialByName(name string) (Credential, error) {
 		return Credential{}, fmt.Errorf("failed to parse response body: %s\n%s", err.Error(), string(body))
 	}
 
-	if len(credentials.Data) != 1 {
-		return Credential{}, fmt.Errorf("expected 1 credential but got %d", len(credentials.Data))
+	if len(credentials.Data) == 0 {
+		return Credential{}, errors.New("expected at least 1 credential")
 	}
 
 	return credentials.Data[0], nil

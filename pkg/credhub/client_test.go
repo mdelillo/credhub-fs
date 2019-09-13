@@ -444,26 +444,6 @@ var _ = Describe("Client", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
-
-		Context("when the data response contains more than one credential", func() {
-			It("returns an error", func() {
-				credentialName := "some-name"
-
-				configureTokenHandlers()
-
-				credhubServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/data", "name="+credentialName),
-						ghttp.RespondWith(http.StatusOK, `{"data": [{"name": "foo"}, {"name": "bar"}]}`),
-					),
-				)
-
-				credhubURL := strings.TrimPrefix(credhubServer.URL(), "https://")
-				client := credhub.NewClient(credhubURL, clientID, clientSecret, skipTLSVerifyHttpClient)
-				_, err := client.GetCredentialByName(credentialName)
-				Expect(err).To(HaveOccurred())
-			})
-		})
 	})
 
 	Describe("FindCredentialsByPath", func() {
